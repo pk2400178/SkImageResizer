@@ -53,11 +53,22 @@ namespace SkImageResizer
                 Directory.CreateDirectory(destPath);
             }
 
-            await Task.Yield();
+            var taskList = new List<Task>();
 
             var allFiles = FindImages(sourcePath);
             foreach (var filePath in allFiles)
             {
+                taskList.Add(Resize(destPath, scale, filePath));
+            }
+
+            await Task.WhenAll(taskList);
+        }
+
+        private async Task Resize(string destPath, double scale, string filePath)
+        {
+            await Task.Run(() => 
+            {
+                //Console.WriteLine($"Thread CurrentThread :{ Thread.CurrentThread.ManagedThreadId}");
                 var bitmap = SKBitmap.Decode(filePath);
                 var imgPhoto = SKImage.FromBitmap(bitmap);
                 var imgName = Path.GetFileNameWithoutExtension(filePath);
@@ -75,7 +86,7 @@ namespace SkImageResizer
                 using var data = scaledImage.Encode(SKEncodedImageFormat.Jpeg, 100);
                 using var s = File.OpenWrite(Path.Combine(destPath, imgName + ".jpg"));
                 data.SaveTo(s);
-            }
+            });
         }
 
         /// <summary>
